@@ -32,6 +32,7 @@
       ensureManualInteractionAllowed,
       executeNode,
       executeNodeViaCompletionSignal,
+      exportCurrentSessionJson,
       exportSettingsBundle,
       fetchHostedCheckoutVerificationCodeManually = null,
       fetchGeneratedEmail,
@@ -1104,6 +1105,13 @@
 
         case 'GET_STATE': {
           return await getState();
+        }
+
+        case 'EXPORT_CURRENT_SESSION_JSON': {
+          if (typeof exportCurrentSessionJson !== 'function') {
+            throw new Error('当前 SESSION JSON 导出能力未接入。');
+          }
+          return await exportCurrentSessionJson(message.payload || {});
         }
 
         case 'RESET': {

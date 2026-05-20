@@ -102,6 +102,7 @@ function createExecutorHarness({
   queryTabsInAutomationWindow = null,
   markCurrentRegistrationAccountUsed = async () => {},
   probeIpProxyExit = null,
+  requestStop = null,
   onSetState = null,
   sleepWithStop = null,
   submitRedirectUrl = 'https://www.paypal.com/checkoutnow',
@@ -115,6 +116,7 @@ function createExecutorHarness({
     messages: [],
     sleeps: [],
     states: [],
+    stopRequests: [],
     waitedUrls: [],
   };
   const checkoutTab = {
@@ -180,6 +182,12 @@ function createExecutorHarness({
     isTabAlive: async () => false,
     markCurrentRegistrationAccountUsed,
     ...(typeof queryTabsInAutomationWindow === 'function' ? { queryTabsInAutomationWindow } : {}),
+    ...(typeof requestStop === 'function' ? {
+      requestStop: async (options = {}) => {
+        events.stopRequests.push(options);
+        return requestStop(options);
+      },
+    } : {}),
     setState: async (updates) => {
       events.states.push(updates);
       if (typeof onSetState === 'function') {
@@ -233,6 +241,36 @@ test('Plus checkout billing stops before PayPal when today due amount is non-zer
   assert.equal(markCalls.length, 1);
   assert.equal(markCalls[0].state.email, 'paid@example.com');
   assert.equal(events.logs.some((entry) => /今日应付金额不是 0/.test(entry.message)), true);
+});
+
+test('Hosted OpenAI checkout non-zero amount requests a full flow stop', async () => {
+  const { events, executor } = createExecutorHarness({
+    frames: [{ frameId: 0, url: 'https://pay.openai.com/c/pay/cs_test' }],
+    stateByFrame: {
+      0: {
+        hasPayPal: true,
+        paypalCandidates: [{ tag: 'button', text: 'PayPal' }],
+        billingFieldsVisible: true,
+        hasSubscribeButton: true,
+        checkoutAmountSummary: {
+          hasTodayDue: true,
+          amount: 19.99,
+          isZero: false,
+          rawAmount: 'US$19.99',
+        },
+      },
+    },
+    requestStop: async () => {},
+  });
+
+  await assert.rejects(
+    () => executor.executePlusCheckoutBilling({ email: 'hosted-paid@example.com' }),
+    /流程已被用户停止。/
+  );
+
+  assert.equal(events.stopRequests.length, 1);
+  assert.equal(events.messages.some((entry) => entry.message.type === 'PLUS_CHECKOUT_CLICK_SUBSCRIBE'), false);
+  assert.equal(events.logs.some((entry) => /已自动停止整个流程/.test(entry.message)), true);
 });
 
 test('Plus checkout billing uses the current checkout tab when step 6 did not register one', async () => {

@@ -131,6 +131,7 @@ const PLUS_PAYMENT_METHOD_GOPAY = 'gopay';
 const PLUS_PAYMENT_METHOD_GPC_HELPER = 'gpc-helper';
 const HOTMAIL_PROVIDER = 'hotmail-api';
 const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
+const CLOUD_MAIL_PROVIDER = 'cloudmail';
 const DEFAULT_FIVE_SIM_PRODUCT = 'openai';
 const DEFAULT_NEX_SMS_SERVICE_CODE = 'ot';
 const FIVE_SIM_COUNTRY_ID = 'vietnam';
@@ -168,7 +169,7 @@ const self = {
 };
 const PERSISTED_SETTING_DEFAULTS = {
   autoStepDelaySeconds: null,
-  hostedCheckoutVerificationPopupDelaySeconds: 4,
+  hostedCheckoutVerificationPopupDelaySeconds: 20,
   hotmailAliasEnabled: false,
   gopayHelperApiUrl: 'https://your-gpc-helper-domain.example',
   mailProvider: '163',
@@ -179,7 +180,7 @@ function normalizeLocalCpaStep9Mode(value) { return value === 'bypass' ? 'bypass
 function normalizeAutoRunFallbackThreadIntervalMinutes(value) { return Number(value) || 0; }
 function normalizeAutoRunDelayMinutes(value) { return Number(value) || 30; }
 function normalizeAutoStepDelaySeconds(value) { return value == null || value === '' ? null : Number(value); }
-function normalizeHostedCheckoutVerificationPopupDelaySeconds(value, fallback = 4) {
+function normalizeHostedCheckoutVerificationPopupDelaySeconds(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? '').trim(), 10);
   return Number.isFinite(parsed) ? Math.min(60, Math.max(0, parsed)) : fallback;
 }
@@ -214,6 +215,7 @@ return {
   assert.equal(api.normalizePersistentSettingValue('phoneSignupReloginAfterBindEmailEnabled', 1), true);
   assert.equal(api.normalizePersistentSettingValue('phoneSignupReloginAfterBindEmailEnabled', 0), false);
   assert.equal(api.normalizePersistentSettingValue('mailProvider', 'cloudflare-temp-email'), 'cloudflare-temp-email');
+  assert.equal(api.normalizePersistentSettingValue('mailProvider', 'cloudmail'), 'cloudmail');
   assert.equal(api.normalizePersistentSettingValue('mailProvider', 'hotmail-api'), 'hotmail-api');
   assert.equal(api.normalizePersistentSettingValue('mailProvider', '163'), 'hotmail-api');
   assert.equal(api.normalizePersistentSettingValue('hotmailAliasEnabled', 0), false);
@@ -236,7 +238,7 @@ return {
   );
   assert.equal(api.normalizePersistentSettingValue('gopayHelperApiUrl', ''), 'https://your-gpc-helper-domain.example');
   assert.equal(api.normalizePersistentSettingValue('gopayHelperApiKey', ' gpc-123 '), 'gpc-123');
-  assert.equal(api.normalizePersistentSettingValue('hostedCheckoutVerificationPopupDelaySeconds', ''), 4);
+  assert.equal(api.normalizePersistentSettingValue('hostedCheckoutVerificationPopupDelaySeconds', ''), 20);
   assert.equal(api.normalizePersistentSettingValue('hostedCheckoutVerificationPopupDelaySeconds', '9'), 9);
   assert.equal(api.normalizePersistentSettingValue('hostedCheckoutVerificationPopupDelaySeconds', '999'), 60);
   assert.equal(api.normalizePersistentSettingValue('gopayHelperPhoneMode', 'auto'), 'auto');

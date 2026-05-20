@@ -310,7 +310,7 @@ function getPayPalAccounts() { return []; }
 function normalizePlusHostedCheckoutOauthDelaySeconds(value) {
   return value == null || String(value).trim() === '' || !Number.isFinite(Number(value)) ? 10 : Number(value);
 }
-function normalizeHostedCheckoutVerificationPopupDelaySeconds(value) { return Number.isFinite(Number(value)) ? Math.min(60, Math.max(0, Number(value))) : 4; }
+function normalizeHostedCheckoutVerificationPopupDelaySeconds(value) { return Number.isFinite(Number(value)) ? Math.min(60, Math.max(0, Number(value))) : 20; }
 function normalizeHostedCheckoutVerificationUrlValue(value) { return String(value || '').trim(); }
 function normalizeHostedCheckoutPhoneValue(value) { return String(value || '').trim(); }
 function normalizeHotmailAliasEnabledValue(value) { return Boolean(value); }
@@ -369,7 +369,7 @@ return {
   assert.equal('accountRunHistoryHelperBaseUrl' in contributionPayload, false);
   assert.equal(contributionPayload.phoneVerificationEnabled, true);
   assert.equal(contributionPayload.cloudflareTempEmailUseRandomSubdomain, true);
-  assert.equal(contributionPayload.hostedCheckoutVerificationPopupDelaySeconds, 4);
+  assert.equal(contributionPayload.hostedCheckoutVerificationPopupDelaySeconds, 20);
   assert.equal(contributionPayload.mailProvider, 'cloudflare-temp-email');
 
   api.setLatestState({ contributionMode: false });
@@ -382,7 +382,7 @@ return {
   assert.equal(normalPayload.codex2apiUrl, 'http://localhost:8080/admin/accounts');
   assert.equal(normalPayload.codex2apiAdminKey, 'codex-admin-secret');
   assert.equal(normalPayload.cloudflareTempEmailUseRandomSubdomain, true);
-  assert.equal(normalPayload.hostedCheckoutVerificationPopupDelaySeconds, 4);
+  assert.equal(normalPayload.hostedCheckoutVerificationPopupDelaySeconds, 20);
   assert.equal(normalPayload.mailProvider, 'cloudflare-temp-email');
 });
 

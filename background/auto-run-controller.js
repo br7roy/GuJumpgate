@@ -532,6 +532,7 @@
               customPassword: prevState.customPassword,
               plusModeEnabled: prevState.plusModeEnabled,
               plusPaymentMethod: prevState.plusPaymentMethod,
+              plusAccountAccessStrategy: prevState.plusAccountAccessStrategy,
               plusHostedCheckoutOauthDelaySeconds: prevState.plusHostedCheckoutOauthDelaySeconds,
               hostedCheckoutVerificationPopupDelaySeconds: prevState.hostedCheckoutVerificationPopupDelaySeconds,
               hostedCheckoutVerificationUrl: prevState.hostedCheckoutVerificationUrl,

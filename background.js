@@ -19,6 +19,7 @@ importScripts(
   'background/paypal-account-store.js',
   'background/ip-proxy-provider-711proxy.js',
   'background/ip-proxy-core.js',
+  'background/cpa-api.js',
   'background/sub2api-api.js',
   'background/panel-bridge.js',
   'background/registration-email-state.js',
@@ -50,6 +51,8 @@ importScripts(
   'background/steps/paypal-approve.js',
   'background/steps/gopay-approve.js',
   'background/steps/plus-return-confirm.js',
+  'background/steps/sub2api-session-import.js',
+  'background/steps/cpa-session-import.js',
   'background/steps/oauth-login.js',
   'background/steps/fetch-login-code.js',
   'background/steps/confirm-oauth.js',
@@ -67,6 +70,9 @@ importScripts(
 );
 
 const DEFAULT_ACTIVE_FLOW_ID = 'openai';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const NORMAL_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: false,
@@ -87,6 +93,18 @@ const PLUS_PAYPAL_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   plusModeEnabled: true,
   plusPaymentMethod: 'paypal',
 }) || NORMAL_STEP_DEFINITIONS;
+const PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'paypal',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
+}) || PLUS_PAYPAL_STEP_DEFINITIONS;
+const PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'paypal',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
+}) || PLUS_PAYPAL_STEP_DEFINITIONS;
 const PLUS_PAYPAL_PHONE_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: true,
@@ -105,6 +123,18 @@ const PLUS_GOPAY_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   plusModeEnabled: true,
   plusPaymentMethod: 'gopay',
 }) || PLUS_PAYPAL_STEP_DEFINITIONS;
+const PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'gopay',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
+}) || PLUS_GOPAY_STEP_DEFINITIONS;
+const PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'gopay',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
+}) || PLUS_GOPAY_STEP_DEFINITIONS;
 const PLUS_GOPAY_PHONE_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: true,
@@ -123,6 +153,18 @@ const PLUS_GPC_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   plusModeEnabled: true,
   plusPaymentMethod: 'gpc-helper',
 }) || PLUS_GOPAY_STEP_DEFINITIONS;
+const PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'gpc-helper',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
+}) || PLUS_GPC_STEP_DEFINITIONS;
+const PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'gpc-helper',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
+}) || PLUS_GPC_STEP_DEFINITIONS;
 const PLUS_GPC_PHONE_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: true,
@@ -149,12 +191,18 @@ const ALL_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getAllSteps?.({
   ...NORMAL_PHONE_STEP_DEFINITIONS,
   ...NORMAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
   ...PLUS_PAYPAL_STEP_DEFINITIONS,
+  ...PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS,
+  ...PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS,
   ...PLUS_PAYPAL_PHONE_STEP_DEFINITIONS,
   ...PLUS_PAYPAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
   ...PLUS_GOPAY_STEP_DEFINITIONS,
+  ...PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS,
+  ...PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS,
   ...PLUS_GOPAY_PHONE_STEP_DEFINITIONS,
   ...PLUS_GOPAY_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
   ...PLUS_GPC_STEP_DEFINITIONS,
+  ...PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS,
+  ...PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS,
   ...PLUS_GPC_PHONE_STEP_DEFINITIONS,
   ...PLUS_GPC_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
 ];
@@ -698,6 +746,7 @@ function getStepDefinitionsForState(state = {}) {
       panelMode,
       plusModeEnabled: isPlusModeState(state),
       plusPaymentMethod: normalizePlusPaymentMethod(state?.plusPaymentMethod),
+      plusAccountAccessStrategy: normalizePlusAccountAccessStrategyForState(state),
       signupMethod: getSignupMethodForStepDefinitions(state),
       phoneSignupReloginAfterBindEmailEnabled: Boolean(state?.phoneSignupReloginAfterBindEmailEnabled),
     });
@@ -713,10 +762,35 @@ function getStepDefinitionsForState(state = {}) {
     return NORMAL_STEP_DEFINITIONS;
   }
   const paymentMethod = normalizePlusPaymentMethod(state?.plusPaymentMethod);
+  const fallbackSignupMethod = getSignupMethodForStepDefinitions(state);
+  const plusAccountAccessStrategy = fallbackSignupMethod === SIGNUP_METHOD_PHONE
+    ? PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH
+    : normalizePlusAccountAccessStrategyForState(state);
   if (paymentMethod === PLUS_PAYMENT_METHOD_GPC_HELPER) {
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS;
+    }
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS;
+    }
     return PLUS_GPC_STEP_DEFINITIONS;
   }
-  return paymentMethod === PLUS_PAYMENT_METHOD_GOPAY ? PLUS_GOPAY_STEP_DEFINITIONS : PLUS_PAYPAL_STEP_DEFINITIONS;
+  if (paymentMethod === PLUS_PAYMENT_METHOD_GOPAY) {
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS;
+    }
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS;
+    }
+    return PLUS_GOPAY_STEP_DEFINITIONS;
+  }
+  if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS;
+  }
+  if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS;
+  }
+  return PLUS_PAYPAL_STEP_DEFINITIONS;
 }
 
 function getStepIdsForState(state = {}) {
@@ -909,8 +983,10 @@ const PERSISTED_SETTING_DEFAULTS = {
   customPassword: '',
   plusModeEnabled: true,
   plusPaymentMethod: DEFAULT_PLUS_PAYMENT_METHOD,
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH,
   plusHostedCheckoutOauthDelaySeconds: 10,
-  hostedCheckoutVerificationPopupDelaySeconds: 4,
+  plusCheckoutConversionProxyUrl: '',
+  hostedCheckoutVerificationPopupDelaySeconds: 20,
   hostedCheckoutVerificationUrl: 'https://mail.test.com/api/text-relay/eca_tr_xxxxxxxxx',
   hostedCheckoutPhoneNumber: '1234567890',
   hostedCheckoutSmsPoolText: '',
@@ -1320,7 +1396,7 @@ function normalizePlusHostedCheckoutOauthDelaySeconds(value, fallback = 10) {
   );
 }
 
-function normalizeHostedCheckoutVerificationPopupDelaySeconds(value, fallback = 4) {
+function normalizeHostedCheckoutVerificationPopupDelaySeconds(value, fallback = 20) {
   const rawValue = String(value ?? '').trim();
   if (!rawValue) {
     return Math.min(
@@ -2492,6 +2568,31 @@ function normalizePanelMode(value = '') {
   return 'cpa';
 }
 
+function normalizePlusAccountAccessStrategy(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+  }
+  if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION;
+  }
+  return PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+}
+
+function normalizePlusAccountAccessStrategyForState(state = {}) {
+  const panelMode = typeof getPanelMode === 'function'
+    ? getPanelMode(state)
+    : normalizePanelMode(state?.panelMode);
+  const strategy = normalizePlusAccountAccessStrategy(state?.plusAccountAccessStrategy);
+  if (panelMode === 'sub2api' && strategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+  }
+  if (panelMode === 'cpa' && strategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION;
+  }
+  return PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+}
+
 function normalizeMailProvider(value = '') {
   const normalized = String(value || '').trim().toLowerCase();
   switch (normalized) {
@@ -2868,11 +2969,39 @@ function normalizePersistentSettingValue(key, value) {
       return normalizeSignupMethod(value);
     case 'plusPaymentMethod':
       return normalizePlusPaymentMethod(value);
+    case 'plusAccountAccessStrategy':
+      return normalizePlusAccountAccessStrategy(value);
     case 'plusHostedCheckoutOauthDelaySeconds':
       return normalizePlusHostedCheckoutOauthDelaySeconds(
         value,
         PERSISTED_SETTING_DEFAULTS.plusHostedCheckoutOauthDelaySeconds
       );
+    case 'plusCheckoutConversionProxyUrl': {
+      const rawValue = String(value || '').trim();
+      if (!rawValue) {
+        return '';
+      }
+      try {
+        const parsed = new URL(rawValue);
+        const protocol = String(parsed.protocol || '').replace(/:$/g, '').trim().toLowerCase();
+        if (!['http', 'https', 'socks4', 'socks5', 'socks5h'].includes(protocol)) {
+          return rawValue;
+        }
+        const host = String(parsed.hostname || '').trim();
+        const port = String(parsed.port || '').trim();
+        if (!host || !port) {
+          return rawValue;
+        }
+        const username = parsed.username ? decodeURIComponent(parsed.username) : '';
+        const password = parsed.password ? decodeURIComponent(parsed.password) : '';
+        const auth = username || password
+          ? `${encodeURIComponent(username)}${parsed.password || password ? `:${encodeURIComponent(password)}` : ''}@`
+          : '';
+        return `${protocol}://${auth}${host}:${port}`;
+      } catch {
+        return rawValue;
+      }
+    }
     case 'hostedCheckoutVerificationPopupDelaySeconds':
       return normalizeHostedCheckoutVerificationPopupDelaySeconds(
         value,
@@ -3068,9 +3197,13 @@ function normalizePersistentSettingValue(key, value) {
     case 'mailProvider':
       {
         const normalizedMailProvider = normalizeMailProvider(value);
-        return normalizedMailProvider === CLOUDFLARE_TEMP_EMAIL_PROVIDER
-          ? CLOUDFLARE_TEMP_EMAIL_PROVIDER
-          : HOTMAIL_PROVIDER;
+        if (normalizedMailProvider === CLOUDFLARE_TEMP_EMAIL_PROVIDER) {
+          return CLOUDFLARE_TEMP_EMAIL_PROVIDER;
+        }
+        if (normalizedMailProvider === CLOUD_MAIL_PROVIDER) {
+          return CLOUD_MAIL_PROVIDER;
+        }
+        return HOTMAIL_PROVIDER;
       }
     case 'mail2925Mode':
       return normalizeMail2925Mode(value);
@@ -8295,6 +8428,227 @@ function getPanelModeLabel(modeOrState) {
   return 'CPA';
 }
 
+function isSupportedChatGptSessionUrl(rawUrl = '') {
+  try {
+    const parsed = new URL(String(rawUrl || ''));
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return false;
+    }
+    const hostname = String(parsed.hostname || '').trim().toLowerCase();
+    return /(^|\.)chatgpt\.com$/.test(hostname)
+      || hostname === 'chat.openai.com'
+      || /(^|\.)openai\.com$/.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function getSessionTabHostPriority(rawUrl = '') {
+  try {
+    const hostname = String(new URL(String(rawUrl || '')).hostname || '').trim().toLowerCase();
+    if (/(^|\.)chatgpt\.com$/.test(hostname)) {
+      return 0;
+    }
+    if (hostname === 'chat.openai.com') {
+      return 1;
+    }
+    if (/(^|\.)openai\.com$/.test(hostname)) {
+      return 2;
+    }
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Number.POSITIVE_INFINITY;
+}
+
+function sanitizeSessionExportFileSegment(value = '', fallback = 'chatgpt-session') {
+  const normalized = String(value || '')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || fallback;
+}
+
+function pickPreferredSessionExportTab(tabs = []) {
+  const candidates = (Array.isArray(tabs) ? tabs : [])
+    .filter((tab) => Number.isInteger(tab?.id) && isSupportedChatGptSessionUrl(tab.url));
+  if (!candidates.length) {
+    return null;
+  }
+  return candidates.reduce((best, candidate) => {
+    if (!best) {
+      return candidate;
+    }
+    const candidateHostPriority = getSessionTabHostPriority(candidate.url);
+    const bestHostPriority = getSessionTabHostPriority(best.url);
+    if (candidateHostPriority !== bestHostPriority) {
+      return candidateHostPriority < bestHostPriority ? candidate : best;
+    }
+    if (Boolean(candidate.active) !== Boolean(best.active)) {
+      return candidate.active ? candidate : best;
+    }
+    const candidateLastAccessed = Number(candidate.lastAccessed) || 0;
+    const bestLastAccessed = Number(best.lastAccessed) || 0;
+    if (candidateLastAccessed !== bestLastAccessed) {
+      return candidateLastAccessed > bestLastAccessed ? candidate : best;
+    }
+    return Number(candidate.id) < Number(best.id) ? candidate : best;
+  }, null);
+}
+
+async function resolveCurrentSessionExportTabs() {
+  const candidates = [];
+  const appendTab = (tab) => {
+    if (!tab?.id || candidates.some((item) => item.id === tab.id)) {
+      return;
+    }
+    candidates.push(tab);
+  };
+
+  const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+  activeTabs.forEach(appendTab);
+
+  const state = await getState().catch(() => ({}));
+  const registeredTabId = await getTabId('plus-checkout').catch(() => null);
+  if (registeredTabId) {
+    appendTab(await chrome.tabs.get(registeredTabId).catch(() => null));
+  }
+  const checkoutTabId = Number(state?.plusCheckoutTabId) || 0;
+  if (checkoutTabId) {
+    appendTab(await chrome.tabs.get(checkoutTabId).catch(() => null));
+  }
+
+  const allTabs = await chrome.tabs.query({}).catch(() => []);
+  const preferredGlobal = pickPreferredSessionExportTab(allTabs);
+  appendTab(preferredGlobal);
+  allTabs.forEach(appendTab);
+
+  return candidates.filter((tab) => tab?.id && isSupportedChatGptSessionUrl(tab.url));
+}
+
+async function readChatGptSessionFromTabForExport(tab) {
+  if (!tab?.id) {
+    throw new Error('未找到可读取 SESSION 的标签页。');
+  }
+  const [{ result } = {}] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: async () => {
+      const response = await fetch('/api/auth/session', { credentials: 'include' });
+      const session = await response.json().catch(() => ({}));
+      return {
+        ok: response.ok,
+        status: response.status,
+        session,
+        accessToken: String(session?.accessToken || '').trim(),
+      };
+    },
+  });
+  if (!result?.ok && !result?.accessToken) {
+    throw new Error(`当前页面未返回可用 SESSION（HTTP ${result?.status || 'unknown'}）。`);
+  }
+  if (!result?.accessToken) {
+    throw new Error('当前 SESSION 中没有 accessToken，请确认 ChatGPT / OpenAI 页面已登录。');
+  }
+  return {
+    tabId: tab.id,
+    url: tab.url || '',
+    session: result.session && typeof result.session === 'object' ? result.session : {},
+    accessToken: result.accessToken,
+  };
+}
+
+async function readCurrentChatGptSessionForExport() {
+  const tabs = await resolveCurrentSessionExportTabs();
+  if (!tabs.length) {
+    throw new Error('未找到 ChatGPT / OpenAI 标签页，请先打开一个已登录页面后再导出。');
+  }
+  const orderedTabs = [
+    pickPreferredSessionExportTab(tabs),
+    ...tabs,
+  ].filter(Boolean);
+  const seen = new Set();
+  const errors = [];
+  for (const tab of orderedTabs) {
+    if (!tab?.id || seen.has(tab.id)) {
+      continue;
+    }
+    seen.add(tab.id);
+    try {
+      return await readChatGptSessionFromTabForExport(tab);
+    } catch (error) {
+      errors.push(error?.message || String(error || ''));
+    }
+  }
+  throw new Error(errors.find(Boolean) || '读取当前 SESSION 失败，请确认 ChatGPT / OpenAI 页面已登录。');
+}
+
+function getCpaSessionExportApi() {
+  const factory = self.MultiPageBackgroundCpaApi?.createCpaApi;
+  if (typeof factory !== 'function') {
+    throw new Error('CPA JSON 转换模块未加载。');
+  }
+  return factory({ addLog });
+}
+
+function getSub2SessionExportApi() {
+  const factory = self.MultiPageBackgroundSub2ApiApi?.createSub2ApiApi;
+  if (typeof factory !== 'function') {
+    throw new Error('SUB2 JSON 转换模块未加载。');
+  }
+  return factory({
+    addLog,
+    normalizeSub2ApiUrl,
+    DEFAULT_SUB2API_GROUP_NAME,
+  });
+}
+
+async function exportCurrentSessionJson(options = {}) {
+  const format = String(options?.format || '').trim().toLowerCase() === 'sub2' ? 'sub2' : 'cpa';
+  const sessionState = await readCurrentChatGptSessionForExport();
+  const state = {
+    ...await getState().catch(() => ({})),
+    session: sessionState.session,
+    accessToken: sessionState.accessToken,
+  };
+
+  if (format === 'sub2') {
+    const sub2Api = getSub2SessionExportApi();
+    const rawContent = sub2Api.buildCodexSessionImportContent(sessionState.session, sessionState.accessToken);
+    let fileContent = rawContent;
+    let parsedContent = null;
+    try {
+      parsedContent = JSON.parse(rawContent);
+      fileContent = JSON.stringify(parsedContent, null, 2);
+    } catch {
+      parsedContent = { accessToken: rawContent };
+      fileContent = JSON.stringify(parsedContent, null, 2);
+    }
+    const email = sanitizeSessionExportFileSegment(
+      parsedContent?.user?.email || parsedContent?.email || '',
+      'chatgpt-session'
+    );
+    return {
+      ok: true,
+      format,
+      fileName: `sub2api-${email}.json`,
+      fileContent,
+      warnings: [],
+    };
+  }
+
+  const cpaApi = getCpaSessionExportApi();
+  const sessionAuth = cpaApi.buildCpaSessionAuthJson(state, { now: new Date() });
+  return {
+    ok: true,
+    format,
+    fileName: sessionAuth.fileName,
+    fileContent: JSON.stringify(sessionAuth.authJson, null, 2),
+    warnings: sessionAuth.hasRefreshToken ? [] : ['当前 SESSION 未包含 refresh_token，导出的 CPA JSON 无法自动续期。'],
+  };
+}
+
 function isSignupPageHost(hostname = '') {
   if (typeof navigationUtils !== 'undefined' && navigationUtils?.isSignupPageHost) {
     return navigationUtils.isSignupPageHost(hostname);
@@ -10362,6 +10716,8 @@ const AUTO_RUN_BACKGROUND_COMPLETED_STEP_KEYS = new Set([
   'plus-checkout-billing',
   'paypal-approve',
   'plus-checkout-return',
+  'sub2api-session-import',
+  'cpa-session-import',
   'oauth-login',
   'fetch-login-code',
   'post-login-phone-verification',
@@ -11472,6 +11828,8 @@ const AUTO_RUN_NODE_DELAYS = Object.freeze({
   'gopay-subscription-confirm': 2000,
   'paypal-approve': 2000,
   'plus-checkout-return': 1000,
+  'sub2api-session-import': 0,
+  'cpa-session-import': 0,
   'oauth-login': 2000,
   'fetch-login-code': 2000,
   'confirm-oauth': 1000,
@@ -13094,6 +13452,7 @@ const step8Executor = self.MultiPageBackgroundStep8?.createStep8Executor({
 });
 const plusCheckoutCreateExecutor = self.MultiPageBackgroundPlusCheckoutCreate?.createPlusCheckoutCreateExecutor({
   addLog,
+  broadcastDataUpdate,
   chrome,
   completeNodeFromBackground,
   createAutomationTab,
@@ -13102,6 +13461,7 @@ const plusCheckoutCreateExecutor = self.MultiPageBackgroundPlusCheckoutCreate?.c
   failNodeFromBackground,
   fetch: typeof fetch === 'function' ? fetch.bind(globalThis) : null,
   getState,
+  requestStop,
   getLastNodeIdForState,
   markCurrentRegistrationAccountUsed,
   registerTab,
@@ -13126,6 +13486,7 @@ const plusCheckoutBillingExecutor = self.MultiPageBackgroundPlusCheckoutBilling?
   isTabAlive,
   markCurrentRegistrationAccountUsed,
   queryTabsInAutomationWindow,
+  requestStop,
   sendTabMessageUntilStopped,
   setState,
   sleepWithStop,
@@ -13185,6 +13546,34 @@ const plusReturnConfirmExecutor = self.MultiPageBackgroundPlusReturnConfirm?.cre
   setState,
   sleepWithStop,
   waitForTabUrlMatchUntilStopped,
+});
+const sub2ApiSessionImportExecutor = self.MultiPageBackgroundSub2ApiSessionImport?.createSub2ApiSessionImportExecutor({
+  addLog,
+  chrome,
+  completeNodeFromBackground,
+  ensureContentScriptReadyOnTabUntilStopped,
+  getTabId,
+  isTabAlive,
+  normalizeSub2ApiUrl,
+  registerTab,
+  sendTabMessageUntilStopped,
+  sleepWithStop,
+  throwIfStopped,
+  waitForTabCompleteUntilStopped,
+  DEFAULT_SUB2API_GROUP_NAME,
+});
+const cpaSessionImportExecutor = self.MultiPageBackgroundCpaSessionImport?.createCpaSessionImportExecutor({
+  addLog,
+  chrome,
+  completeNodeFromBackground,
+  ensureContentScriptReadyOnTabUntilStopped,
+  getTabId,
+  isTabAlive,
+  registerTab,
+  sendTabMessageUntilStopped,
+  sleepWithStop,
+  throwIfStopped,
+  waitForTabCompleteUntilStopped,
 });
 const plusSuccessSessionUploadManager = self.MultiPageBackgroundPlusSuccessSessionUpload?.createPlusSuccessSessionUploadManager({
   addLog,
@@ -13264,6 +13653,8 @@ const stepExecutorsByKey = {
     ? goPayApproveExecutor.executeGoPayApprove(state)
     : payPalApproveExecutor.executePayPalApprove(state),
   'plus-checkout-return': (state) => plusReturnConfirmExecutor.executePlusReturnConfirm(state),
+  'sub2api-session-import': (state) => sub2ApiSessionImportExecutor.executeSub2ApiSessionImport(state),
+  'cpa-session-import': (state) => cpaSessionImportExecutor.executeCpaSessionImport(state),
   'oauth-login': (state) => step7Executor.executeStep7(state),
   'fetch-login-code': (state) => step8Executor.executeStep8(state),
   'post-login-phone-verification': (state) => step8Executor.executePostLoginPhoneVerification(state),
@@ -13306,6 +13697,7 @@ const messageRouter = self.MultiPageBackgroundMessageRouter?.createMessageRouter
   ensureManualInteractionAllowed,
   executeNode,
   executeNodeViaCompletionSignal,
+  exportCurrentSessionJson,
   executePostRegistrationCheckoutBilling: async (state = {}) => plusCheckoutBillingExecutor.executePlusCheckoutBilling({
     ...state,
     plusPaymentMethod: normalizePlusPaymentMethod(state?.plusPaymentMethod),
@@ -13458,12 +13850,18 @@ const normalPhoneBoundEmailReloginStepRegistry = buildStepRegistry(NORMAL_PHONE_
 const plusPayPalStepRegistry = buildStepRegistry(PLUS_PAYPAL_STEP_DEFINITIONS);
 const plusPayPalPhoneStepRegistry = buildStepRegistry(PLUS_PAYPAL_PHONE_STEP_DEFINITIONS);
 const plusPayPalPhoneBoundEmailReloginStepRegistry = buildStepRegistry(PLUS_PAYPAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS);
+const plusPayPalSub2ApiSessionStepRegistry = buildStepRegistry(PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS);
+const plusPayPalCpaSessionStepRegistry = buildStepRegistry(PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS);
 const plusGoPayStepRegistry = buildStepRegistry(PLUS_GOPAY_STEP_DEFINITIONS);
 const plusGoPayPhoneStepRegistry = buildStepRegistry(PLUS_GOPAY_PHONE_STEP_DEFINITIONS);
 const plusGoPayPhoneBoundEmailReloginStepRegistry = buildStepRegistry(PLUS_GOPAY_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS);
+const plusGoPaySub2ApiSessionStepRegistry = buildStepRegistry(PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS);
+const plusGoPayCpaSessionStepRegistry = buildStepRegistry(PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS);
 const plusGpcStepRegistry = buildStepRegistry(PLUS_GPC_STEP_DEFINITIONS);
 const plusGpcPhoneStepRegistry = buildStepRegistry(PLUS_GPC_PHONE_STEP_DEFINITIONS);
 const plusGpcPhoneBoundEmailReloginStepRegistry = buildStepRegistry(PLUS_GPC_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS);
+const plusGpcSub2ApiSessionStepRegistry = buildStepRegistry(PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS);
+const plusGpcCpaSessionStepRegistry = buildStepRegistry(PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS);
 const localCpaJsonNoRtStepRegistry = buildStepRegistry(LOCAL_CPA_JSON_NO_RT_STEP_DEFINITIONS);
 
 function getStepRegistryForState(state = {}) {
@@ -13484,17 +13882,38 @@ function getStepRegistryForState(state = {}) {
     return normalStepRegistry;
   }
   const paymentMethod = normalizePlusPaymentMethod(state?.plusPaymentMethod);
+  const plusAccountAccessStrategy = signupMethod === SIGNUP_METHOD_PHONE
+    ? PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH
+    : normalizePlusAccountAccessStrategyForState(state);
   if (paymentMethod === PLUS_PAYMENT_METHOD_GPC_HELPER) {
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return plusGpcSub2ApiSessionStepRegistry;
+    }
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return plusGpcCpaSessionStepRegistry;
+    }
     if (signupMethod === SIGNUP_METHOD_PHONE) {
       return useBoundEmailRelogin ? plusGpcPhoneBoundEmailReloginStepRegistry : plusGpcPhoneStepRegistry;
     }
     return plusGpcStepRegistry;
   }
   if (paymentMethod === PLUS_PAYMENT_METHOD_GOPAY) {
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return plusGoPaySub2ApiSessionStepRegistry;
+    }
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return plusGoPayCpaSessionStepRegistry;
+    }
     if (signupMethod === SIGNUP_METHOD_PHONE) {
       return useBoundEmailRelogin ? plusGoPayPhoneBoundEmailReloginStepRegistry : plusGoPayPhoneStepRegistry;
     }
     return plusGoPayStepRegistry;
+  }
+  if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return plusPayPalSub2ApiSessionStepRegistry;
+  }
+  if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return plusPayPalCpaSessionStepRegistry;
   }
   if (signupMethod === SIGNUP_METHOD_PHONE) {
     return useBoundEmailRelogin ? plusPayPalPhoneBoundEmailReloginStepRegistry : plusPayPalPhoneStepRegistry;
@@ -15116,14 +15535,13 @@ chrome.runtime.onStartup.addListener(() => {
   restoreAutoRunTimerIfNeeded().catch((err) => {
     console.error(LOG_PREFIX, 'Failed to restore auto run timer on startup:', err);
   });
-  if (IP_PROXY_INIT_AUTO_APPLY) {
-    ensureIpProxySettingsAppliedFromCurrentState({
-      skipExitProbe: !IP_PROXY_INIT_ENABLE_EXIT_PROBE,
-      suppressAuthRebind: IP_PROXY_INIT_SUPPRESS_AUTH_REBIND,
-    }).catch((err) => {
-      console.error(LOG_PREFIX, 'Failed to restore IP proxy settings on startup:', err);
-    });
-  }
+  restoreIpProxySettingsOnWorkerStart({
+    autoApply: IP_PROXY_INIT_AUTO_APPLY,
+    skipExitProbe: !IP_PROXY_INIT_ENABLE_EXIT_PROBE,
+    suppressAuthRebind: IP_PROXY_INIT_SUPPRESS_AUTH_REBIND,
+  }).catch((err) => {
+    console.error(LOG_PREFIX, 'Failed to restore IP proxy settings on startup:', err);
+  });
   ensureIpProxyAutoSyncAlarm().catch((err) => {
     console.error(LOG_PREFIX, 'Failed to restore IP proxy auto sync alarm on startup:', err);
   });
@@ -15133,14 +15551,13 @@ chrome.runtime.onInstalled.addListener(() => {
   restoreAutoRunTimerIfNeeded().catch((err) => {
     console.error(LOG_PREFIX, 'Failed to restore auto run timer on install/update:', err);
   });
-  if (IP_PROXY_INIT_AUTO_APPLY) {
-    ensureIpProxySettingsAppliedFromCurrentState({
-      skipExitProbe: !IP_PROXY_INIT_ENABLE_EXIT_PROBE,
-      suppressAuthRebind: IP_PROXY_INIT_SUPPRESS_AUTH_REBIND,
-    }).catch((err) => {
-      console.error(LOG_PREFIX, 'Failed to restore IP proxy settings on install/update:', err);
-    });
-  }
+  restoreIpProxySettingsOnWorkerStart({
+    autoApply: IP_PROXY_INIT_AUTO_APPLY,
+    skipExitProbe: !IP_PROXY_INIT_ENABLE_EXIT_PROBE,
+    suppressAuthRebind: IP_PROXY_INIT_SUPPRESS_AUTH_REBIND,
+  }).catch((err) => {
+    console.error(LOG_PREFIX, 'Failed to restore IP proxy settings on install/update:', err);
+  });
   ensureIpProxyAutoSyncAlarm().catch((err) => {
     console.error(LOG_PREFIX, 'Failed to restore IP proxy auto sync alarm on install/update:', err);
   });
@@ -15149,14 +15566,13 @@ chrome.runtime.onInstalled.addListener(() => {
 restoreAutoRunTimerIfNeeded().catch((err) => {
   console.error(LOG_PREFIX, 'Failed to restore auto run timer:', err);
 });
-if (IP_PROXY_INIT_AUTO_APPLY) {
-  ensureIpProxySettingsAppliedFromCurrentState({
-    skipExitProbe: !IP_PROXY_INIT_ENABLE_EXIT_PROBE,
-    suppressAuthRebind: IP_PROXY_INIT_SUPPRESS_AUTH_REBIND,
-  }).catch((err) => {
-    console.error(LOG_PREFIX, 'Failed to restore IP proxy settings:', err);
-  });
-}
+restoreIpProxySettingsOnWorkerStart({
+  autoApply: IP_PROXY_INIT_AUTO_APPLY,
+  skipExitProbe: !IP_PROXY_INIT_ENABLE_EXIT_PROBE,
+  suppressAuthRebind: IP_PROXY_INIT_SUPPRESS_AUTH_REBIND,
+}).catch((err) => {
+  console.error(LOG_PREFIX, 'Failed to restore IP proxy settings:', err);
+});
 ensureIpProxyAutoSyncAlarm().catch((err) => {
   console.error(LOG_PREFIX, 'Failed to restore IP proxy auto sync alarm:', err);
 });

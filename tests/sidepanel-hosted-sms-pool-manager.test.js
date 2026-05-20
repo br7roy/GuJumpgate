@@ -131,3 +131,77 @@ test('hosted sms pool manager accepts phone and relay url as two-line import hin
     global.document = originalDocument;
   }
 });
+
+test('hosted sms pool manager normalizes imported US numbers to 10 local digits', async () => {
+  const source = fs.readFileSync('sidepanel/hosted-sms-pool-manager.js', 'utf8');
+  const windowObject = {};
+  const originalDocument = global.document;
+  global.document = {
+    createElement() {
+      return {
+        className: '',
+        innerHTML: '',
+        appendChild() {},
+        querySelector() {
+          return { addEventListener() {} };
+        },
+      };
+    },
+  };
+  try {
+    const api = new Function('window', `${source}; return window.SidepanelHostedSmsPoolManager;`)(windowObject);
+    let text = '';
+    let usage = {};
+    const handlers = {};
+    const manager = api.createHostedSmsPoolManager({
+      dom: {
+        btnHostedSmsPoolRefresh: { disabled: false, addEventListener() {} },
+        btnHostedSmsPoolClearUsed: { disabled: false, addEventListener() {} },
+        btnHostedSmsPoolDeleteAll: { disabled: false, addEventListener() {} },
+        inputHostedSmsPoolImport: {
+          value: '+15828228115\nhttps://mail.test.com/api/text-relay/us-plus',
+          disabled: false,
+          addEventListener() {},
+        },
+        btnHostedSmsPoolImport: {
+          disabled: false,
+          addEventListener(type, handler) {
+            handlers[type] = handler;
+          },
+        },
+        hostedSmsPoolSummary: { textContent: '' },
+        hostedSmsPoolList: { innerHTML: '', appendChild() {} },
+        inputHostedSmsPoolSearch: { value: '', addEventListener() {} },
+        selectHostedSmsPoolFilter: { value: 'all', addEventListener() {} },
+      },
+      helpers: {
+        openConfirmModal: async () => true,
+        showToast() {},
+      },
+      state: {
+        getText: () => text,
+        setText: (nextText) => {
+          text = nextText;
+        },
+        getUsage: () => usage,
+        setUsage: (nextUsage) => {
+          usage = nextUsage;
+        },
+        getCurrentEntry: () => null,
+        isVisible: () => true,
+      },
+      actions: {
+        persistPool: async () => {},
+        clearFallback() {},
+      },
+    });
+
+    manager.bindEvents();
+    await handlers.click();
+
+    assert.equal(text, '5828228115----https://mail.test.com/api/text-relay/us-plus');
+    assert.deepEqual(usage, {});
+  } finally {
+    global.document = originalDocument;
+  }
+});

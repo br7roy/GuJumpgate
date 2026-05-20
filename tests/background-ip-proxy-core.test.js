@@ -8,6 +8,7 @@ function loadIpProxyCore({ accountListEnabled = true } = {}) {
   return new Function(`
 const self = {};
 const chrome = {};
+let __state = {};
 const DEFAULT_IP_PROXY_SERVICE = '711proxy';
 const IP_PROXY_SERVICE_VALUES = ['711proxy', 'lumiproxy', 'iproyal', 'omegaproxy'];
 const IP_PROXY_ENABLED_SERVICE_VALUES = ['711proxy'];
@@ -40,6 +41,10 @@ const IP_PROXY_TARGET_HOST_PATTERNS = [
 ];
 ${providerSource}
 const transformIpProxyAccountEntryByProvider = self.transformIpProxyAccountEntryByProvider;
+async function getState() { return __state; }
+async function setState(patch = {}) { __state = { ...__state, ...(patch || {}) }; return __state; }
+function broadcastDataUpdate() {}
+async function addLog() {}
 ${coreSource}
 return {
   applyExitRegionExpectation,
@@ -54,9 +59,11 @@ return {
   parseProxyExitProbePayload,
   parseIpProxyLine,
   queryAutomationScopedTabs,
+  restoreIpProxySettingsOnWorkerStart,
   resolveExitProbeEndpoints,
   resolveIpProxyAutoSwitchThreshold,
   resolveTargetReachabilityEndpoints,
+  setTestState(nextState = {}) { __state = { ...(nextState || {}) }; },
   shouldEnableIpProxyLeakGuardForStatus,
 };
 `)();
@@ -226,6 +233,85 @@ test('IP proxy PAC keeps local traffic direct and routes target traffic through 
   assert.match(pac, /forceDirectPatterns/);
   assert.match(pac, /PROXY 127\.0\.0\.1:7897/);
   assert.doesNotMatch(pac, /PROXY 127\.0\.0\.1:7897; DIRECT/);
+});
+
+test('startup restore clears stale controlled proxy when IP proxy is disabled', async () => {
+  const api = loadIpProxyCore();
+  const proxyCalls = [];
+  api.setTestState({
+    ipProxyEnabled: false,
+    ipProxyService: '711proxy',
+  });
+  api.chrome.proxy = {
+    settings: {
+      get(details, callback) {
+        callback({
+          levelOfControl: 'controlled_by_this_extension',
+          value: {
+            mode: 'pac_script',
+            pacScript: { data: 'function FindProxyForURL(){ return "PROXY 54.186.216.13:15678"; }' },
+          },
+        });
+      },
+      clear(details, callback) {
+        proxyCalls.push({ type: 'clear', details });
+        callback();
+      },
+    },
+  };
+
+  const status = await api.restoreIpProxySettingsOnWorkerStart({ autoApply: false });
+
+  assert.equal(proxyCalls.length, 1);
+  assert.equal(proxyCalls[0].type, 'clear');
+  assert.equal(status.reason, 'startup_cleared_stale_proxy');
+});
+
+test('startup restore reapplies controlled proxy to restore auth credentials when IP proxy is enabled', async () => {
+  const api = loadIpProxyCore();
+  const proxyCalls = [];
+  api.setTestState({
+    ipProxyEnabled: true,
+    ipProxyService: '711proxy',
+    ipProxyMode: 'account',
+    ipProxyHost: '54.186.216.13',
+    ipProxyPort: '15678',
+    ipProxyProtocol: 'http',
+    ipProxyUsername: 'user_demo',
+    ipProxyPassword: 'pass_demo',
+  });
+  api.chrome.proxy = {
+    settings: {
+      get(details, callback) {
+        callback({
+          levelOfControl: 'controlled_by_this_extension',
+          value: {
+            mode: 'pac_script',
+            pacScript: { data: 'function FindProxyForURL(){ return "PROXY 54.186.216.13:15678"; }' },
+          },
+        });
+      },
+      clear(details, callback) {
+        proxyCalls.push({ type: 'clear', details });
+        callback();
+      },
+      set(details, callback) {
+        proxyCalls.push({ type: 'set', details });
+        callback();
+      },
+    },
+    onProxyError: { addListener() {} },
+  };
+  api.chrome.webRequest = {
+    onAuthRequired: { addListener() {} },
+  };
+  api.chrome.runtime = {};
+
+  const status = await api.restoreIpProxySettingsOnWorkerStart({ autoApply: false });
+
+  assert.equal(proxyCalls.some((call) => call.type === 'set'), true);
+  assert.equal(status.applied, true);
+  assert.equal(status.reason, 'applied');
 });
 
 test('sidepanel loads IP proxy scripts before sidepanel bootstrap', () => {

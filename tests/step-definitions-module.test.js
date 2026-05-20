@@ -14,6 +14,16 @@ test('step definitions module exposes ordered normal and Plus step metadata', ()
     phoneSignupReloginAfterBindEmailEnabled: true,
   });
   const plusSteps = api.getSteps({ plusModeEnabled: true });
+  const plusSub2ApiSessionSteps = api.getSteps({
+    plusModeEnabled: true,
+    panelMode: 'sub2api',
+    plusAccountAccessStrategy: 'sub2api_codex_session',
+  });
+  const plusCpaSessionSteps = api.getSteps({
+    plusModeEnabled: true,
+    panelMode: 'cpa',
+    plusAccountAccessStrategy: 'cpa_codex_session',
+  });
   const plusPhoneSteps = api.getSteps({ plusModeEnabled: true, signupMethod: 'phone' });
   const plusPhoneReloginSteps = api.getSteps({
     plusModeEnabled: true,
@@ -122,6 +132,32 @@ test('step definitions module exposes ordered normal and Plus step metadata', ()
   assert.equal(plusSteps.some((step) => step.key === 'wait-registration-success'), false);
   assert.equal(plusSteps.some((step) => step.key === 'fetch-login-code'), true);
   assert.equal(plusSteps.find((step) => step.key === 'plus-checkout-create')?.title, '创建 Plus Checkout');
+  assert.deepStrictEqual(
+    plusSub2ApiSessionSteps.map((step) => step.key),
+    [
+      'open-chatgpt',
+      'submit-signup-email',
+      'fill-password',
+      'fetch-signup-code',
+      'fill-profile',
+      'plus-checkout-create',
+      'sub2api-session-import',
+    ]
+  );
+  assert.equal(plusSub2ApiSessionSteps.find((step) => step.key === 'sub2api-session-import')?.title, '导入当前 ChatGPT 会话到 SUB2API');
+  assert.deepStrictEqual(
+    plusCpaSessionSteps.map((step) => step.key),
+    [
+      'open-chatgpt',
+      'submit-signup-email',
+      'fill-password',
+      'fetch-signup-code',
+      'fill-profile',
+      'plus-checkout-create',
+      'cpa-session-import',
+    ]
+  );
+  assert.equal(plusCpaSessionSteps.find((step) => step.key === 'cpa-session-import')?.title, '导入当前 ChatGPT 会话到 CPA');
   assert.equal(plusPhoneSteps[1].title, '注册并输入手机号');
   assert.equal(plusPhoneSteps[3].title, '获取手机验证码');
   assert.deepStrictEqual(
@@ -251,6 +287,15 @@ test('sidepanel html loads shared step definitions before sidepanel bootstrap', 
 
 test('sidepanel html exposes Plus mode, PayPal, and GoPay settings', () => {
   const html = fs.readFileSync('sidepanel/sidepanel.html', 'utf8');
+  assert.match(html, /<option value="local-cpa-json" selected>本地CPA JSON<\/option>/);
+  assert.doesNotMatch(html, /<option value="local-cpa-json-no-rt">/);
+  assert.match(html, /id="select-account-access-strategy"/);
+  assert.match(html, /<option value="oauth" selected>Oauth<\/option>/);
+  assert.match(html, /<option value="session_json">SESSION JSON导入<\/option>/);
+  assert.match(html, /id="row-export-current-session-json"/);
+  assert.match(html, /id="btn-export-current-session-cpa-json"/);
+  assert.match(html, /id="btn-export-current-session-sub2-json"/);
+  assert.ok(html.indexOf('row-export-current-session-json') < html.indexOf('row-custom-password'));
   assert.match(html, /id="input-plus-mode-enabled"/);
   assert.match(html, /id="select-plus-payment-method"/);
   assert.match(html, /id="select-paypal-account"/);

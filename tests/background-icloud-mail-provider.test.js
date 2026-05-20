@@ -93,12 +93,13 @@ return { getMailConfig };
 
 test('normalizeMailProvider keeps icloud provider', () => {
   const bundle = extractFunction('normalizeMailProvider');
-  const api = new Function(`
+const api = new Function(`
 const ICLOUD_PROVIDER = 'icloud';
 const GMAIL_PROVIDER = 'gmail';
 const HOTMAIL_PROVIDER = 'hotmail-api';
 const LUCKMAIL_PROVIDER = 'luckmail-api';
 const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
+const CLOUD_MAIL_PROVIDER = 'cloudmail';
 const PERSISTED_SETTING_DEFAULTS = { mailProvider: '163' };
 ${bundle}
 return { normalizeMailProvider };
@@ -106,6 +107,7 @@ return { normalizeMailProvider };
 
   assert.equal(api.normalizeMailProvider('icloud'), 'icloud');
   assert.equal(api.normalizeMailProvider('ICLOUD'), 'icloud');
+  assert.equal(api.normalizeMailProvider('cloudmail'), 'cloudmail');
 });
 
 test('getMailConfig returns icloud mail tab config with host preference', () => {

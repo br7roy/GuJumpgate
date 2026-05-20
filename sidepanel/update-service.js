@@ -403,11 +403,11 @@
     }
 
     const versionCore = extractVersionCore(manifest?.version || '');
-    return versionCore ? formatDisplayVersion(`GuJumpgate${versionCore}`, VERSION_FAMILY_GUJUMPGATE) : '';
+    return versionCore ? formatDisplayVersion(`GuJumpgate ${versionCore}`, VERSION_FAMILY_GUJUMPGATE) : '';
   }
 
   async function getReleaseSnapshot(options = {}) {
-    const localVersion = getLocalVersionLabel(chrome.runtime.getManifest()) || 'GuJumpgate0.0';
+    const localVersion = getLocalVersionLabel(chrome.runtime.getManifest()) || 'GuJumpgate 0.0';
 
     try {
       const releases = await loadReleases(options);

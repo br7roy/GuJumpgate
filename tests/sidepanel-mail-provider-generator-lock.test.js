@@ -144,6 +144,7 @@ function queueIcloudAliasRefresh() {}
 function hideIcloudLoginHelp() {}
 function syncMail2925PoolAccountOptions() {}
 function getMail2925Accounts() { return []; }
+function renderPayPalAccounts() {}
 function renderHotmailAccounts() {}
 function renderMail2925Accounts() {}
 function renderLuckmailPurchases() {}
@@ -166,6 +167,19 @@ return {
   `)(createRow);
 }
 
+function buildNormalizeSupportedMailProviderApi() {
+  const bundle = extractFunction('normalizeSupportedMailProvider');
+  return new Function(`
+const HOTMAIL_PROVIDER = 'hotmail-api';
+const CLOUDFLARE_TEMP_EMAIL_PROVIDER = 'cloudflare-temp-email';
+const CLOUD_MAIL_PROVIDER = 'cloudmail';
+${bundle}
+return {
+  normalizeSupportedMailProvider,
+};
+  `)();
+}
+
 test('sidepanel html hides and disables email generator by default', () => {
   const html = fs.readFileSync('sidepanel/sidepanel.html', 'utf8');
   assert.match(html, /id="row-email-generator"[^>]*style="display:none;"/);
@@ -175,6 +189,14 @@ test('sidepanel html hides and disables email generator by default', () => {
 test('sidepanel html defaults registration email placeholder to hotmail pool allocation', () => {
   const html = fs.readFileSync('sidepanel/sidepanel.html', 'utf8');
   assert.match(html, /id="input-email"[^>]*placeholder="由 Hotmail 账号池自动分配"/);
+});
+
+test('sidepanel html keeps cloudmail as a selectable mail provider', () => {
+  const html = fs.readFileSync('sidepanel/sidepanel.html', 'utf8');
+  assert.match(
+    html,
+    /<select id="select-mail-provider"[\s\S]*?<option value="cloudmail">Cloud Mail<\/option>/
+  );
 });
 
 test('sidepanel restores state without waiting for phone country loaders', () => {
@@ -218,4 +240,29 @@ test('updateMailProviderUI locks cloudflare temp email provider to its own gener
     api.selectEmailGenerator.options.map((option) => option.hidden),
     [true, true, true, true, true, false, true]
   );
+});
+
+test('updateMailProviderUI locks cloudmail provider to its own generator', () => {
+  const api = buildUpdateMailProviderUiApi();
+
+  api.selectMailProvider.value = 'cloudmail';
+  api.selectEmailGenerator.value = 'duck';
+  api.updateMailProviderUI();
+
+  assert.equal(api.rowEmailGenerator.style.display, '');
+  assert.equal(api.selectEmailGenerator.disabled, true);
+  assert.equal(api.selectEmailGenerator.value, 'cloudmail');
+  assert.deepEqual(
+    api.selectEmailGenerator.options.map((option) => option.hidden),
+    [true, true, true, true, true, true, false]
+  );
+});
+
+test('normalizeSupportedMailProvider keeps cloudmail provider available', () => {
+  const api = buildNormalizeSupportedMailProviderApi();
+
+  assert.equal(api.normalizeSupportedMailProvider('cloudmail'), 'cloudmail');
+  assert.equal(api.normalizeSupportedMailProvider('cloudflare-temp-email'), 'cloudflare-temp-email');
+  assert.equal(api.normalizeSupportedMailProvider('hotmail-api'), 'hotmail-api');
+  assert.equal(api.normalizeSupportedMailProvider('unknown-provider'), 'hotmail-api');
 });

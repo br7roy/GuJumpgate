@@ -265,7 +265,7 @@ function normalizeAutoRunThreadIntervalMinutes(value) { return Number(value) || 
 function normalizeAutoDelayMinutes(value) { return Number(value) || 30; }
 function normalizeAutoStepDelaySeconds(value) { return value === '' ? null : Number(value); }
 function normalizePlusHostedCheckoutOauthDelaySeconds(value) { return Number(value) || 0; }
-function normalizeHostedCheckoutVerificationPopupDelaySeconds(value) { return Number.isFinite(Number(value)) ? Math.min(60, Math.max(0, Number(value))) : 4; }
+function normalizeHostedCheckoutVerificationPopupDelaySeconds(value) { return Number.isFinite(Number(value)) ? Math.min(60, Math.max(0, Number(value))) : 20; }
 function normalizeHostedCheckoutVerificationUrlValue(value) { return String(value || '').trim(); }
 function normalizeHostedCheckoutPhoneValue(value) { return String(value || '').trim(); }
 function normalizeHostedCheckoutSmsPoolTextValue(value) { return String(value || '').replace(/\\r/g, '').split('\\n').map((line) => line.trim()).filter(Boolean).join('\\n'); }

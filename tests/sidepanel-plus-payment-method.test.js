@@ -172,7 +172,7 @@ return { updatePlusModeUI, selectPlusPaymentMethod, rowPayPalAccount };
 
   api.selectPlusPaymentMethod.value = 'paypal';
   api.updatePlusModeUI();
-  assert.equal(api.rowPayPalAccount.style.display, '');
+  assert.equal(api.rowPayPalAccount.style.display, 'none');
 });
 
 test('sidepanel Plus UI can hide Plus controls when the shared flow capability registry disables them', () => {

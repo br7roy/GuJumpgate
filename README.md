@@ -72,7 +72,7 @@
 
 你可以使用 Mihomo 等支持分流的代理工具，有什么、会什么就用什么。
 
-如果你使用的代理工具是mihomo(clash)，你可以将Releases中的”mihomo-yaml-prompt.md“发给电脑上的claude code、codex、opencode等工具，让AI直接帮你修改分流配置。(推荐、方便)
+如果你使用的代理工具是mihomo(clash)，你可以将 [Releases](https://github.com/FoundZiGu/GuJumpgate/releases) 中的 "mihomo-yaml-prompt.md" 发给电脑上的claude code、codex、opencode等工具，让AI直接帮你修改分流配置。(推荐、方便)
 
 
 以下演示使用的代理工具是 [ZeroOmega](https://chromewebstore.google.com/detail/pfnededegaaopdmhkdmcofjmoldfiped?utm_source=item-share-cb)，(麻烦)
@@ -94,7 +94,9 @@
 
 ![代理直连与分流示例](docs/images/github-readme-1779192869062.webp)
 
-### 6. 启动 Hotmail Helper (如果你使用的是Outlook/Hotmail邮箱)
+### 6. 启动 Hotmail Helper
+
+请注意本地json生成依赖本地助手，无论你是否使用hotmail/outlook邮箱，都请启动！
 
 运行解压目录内的 `start-hotmail-helper.bat`。
 
@@ -109,6 +111,7 @@
 ### 8. 配置扩展参数 (选择导出至哪里)
 
 ![选择导出至本地 CPA JSON 无 RT](docs/images/github-readme-export-target-local-cpa-json-no-rt.png)
+
 目前只推荐这个导出方式，Oauth登录严重风控，几乎100%弹出验证手机号
 
 ![配置扩展参数字段](docs/images/github-readme-extension-config-fields.png)

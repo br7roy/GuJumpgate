@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GuJumpgate</title>
+  <title>GuJumpgate 0.1.2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -25,7 +25,7 @@
       <div class="header-version-block">
         <div class="header-version-main">
           <button id="extension-update-status" class="header-version-title header-version-link" type="button"
-          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate0.1.1</button>
+          aria-label="打开 GitHub Releases 页面" title="打开 GitHub Releases 页面">GuJumpgate 0.1.2</button>
           <button id="btn-release-log" class="header-link-btn" type="button" hidden>更新日志</button>
         </div>
         <span id="extension-version-meta" class="header-version-meta" hidden></span>
@@ -119,12 +119,21 @@
       <div class="data-row">
         <span class="data-label">导出至</span>
         <select id="select-panel-mode" class="data-select">
-          <option value="local-cpa-json" selected>本地CPA JSON 有RT</option>
-          <option value="local-cpa-json-no-rt">本地CPA JSON 无RT</option>
+          <option value="local-cpa-json" selected>本地CPA JSON</option>
           <option value="cpa">CPA 面板</option>
           <option value="sub2api">SUB2API</option>
           <option value="codex2api">Codex2API</option>
         </select>
+      </div>
+      <div class="data-row" id="row-account-access-strategy">
+        <span class="data-label">账号接入策略</span>
+        <div class="data-inline">
+          <select id="select-account-access-strategy" class="data-select">
+            <option value="oauth" selected>Oauth</option>
+            <option value="session_json">SESSION JSON导入</option>
+          </select>
+          <span class="setting-caption" id="account-access-strategy-caption"></span>
+        </div>
       </div>
       <div class="data-row" id="row-local-cpa-json-plugin-dir" style="display:none;">
         <span class="data-label">插件目录</span>
@@ -260,7 +269,14 @@
             title="显示 Codex2API 管理密钥"></button>
         </div>
       </div>
-      <div class="data-row module-divider-start" id="row-custom-password">
+      <div class="data-row module-divider-start" id="row-export-current-session-json">
+        <span class="data-label">导出当前SESSION JSON</span>
+        <div class="data-inline">
+          <button id="btn-export-current-session-cpa-json" class="btn btn-ghost btn-xs" type="button">导出为CPA JSON</button>
+          <button id="btn-export-current-session-sub2-json" class="btn btn-ghost btn-xs" type="button">导出为SUB2 JSON</button>
+        </div>
+      </div>
+      <div class="data-row" id="row-custom-password">
         <span class="data-label">账户密码</span>
         <div class="input-with-icon">
           <input type="password" id="input-password" class="data-input data-input-with-icon"
@@ -317,6 +333,12 @@
           <span class="setting-caption">检测到支付成功页后，等待多少秒再进入 OAuth；0 = 立即继续</span>
         </div>
       </div>
+      <div class="data-row" id="row-plus-checkout-conversion-proxy" style="display:none;">
+        <span class="data-label">支付转换代理</span>
+        <input type="text" id="input-plus-checkout-conversion-proxy" class="data-input mono"
+          placeholder="http://127.0.0.1:7890 或 socks5h://user:pass@host:port"
+          title="仅在第 6 步创建 checkout 并跳转 pay.openai.com / Stripe hosted checkout 时临时生效；留空则沿用当前网络环境" />
+      </div>
       <div class="data-row" id="row-hosted-checkout-verification-url" style="display:none;">
         <span class="data-label">验证码接口</span>
         <input type="text" id="input-hosted-checkout-verification-url" class="data-input"
@@ -334,12 +356,12 @@
         <span class="data-label">弹窗延迟</span>
         <div class="data-inline">
           <input type="number" id="input-hosted-checkout-verification-popup-delay-seconds" class="data-input auto-delay-input"
-            value="4" min="0" max="60" step="1" title="检测到 PayPal hosted checkout 验证码弹窗后，等待多少秒再开始获取验证码" />
-          <span class="setting-caption">检测到验证码弹窗后，先等待多少秒再开始获取验证码；默认 4 秒</span>
+            value="20" min="0" max="60" step="1" title="检测到 PayPal hosted checkout 验证码弹窗后，等待多少秒再开始获取验证码" />
+          <span class="setting-caption">检测到验证码弹窗后，先等待多少秒再开始获取验证码；默认 20 秒</span>
         </div>
       </div>
       <div class="data-row" id="row-hosted-checkout-phone" style="display:none;">
-        <span class="data-label">PayPal 电话</span>
+        <span class="data-label">PayPal 电话(不带+1)</span>
         <input type="text" id="input-hosted-checkout-phone" class="data-input mono"
           placeholder="1234567890" />
       </div>
@@ -514,7 +536,8 @@
         <div class="data-inline">
           <select id="select-mail-provider" class="data-select">
             <option value="hotmail-api">Outlook/Hotmail 账号池</option>
-            <option value="cloudflare-temp-email">Cloudflare Temp Email（推荐）</option>
+            <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
+            <option value="cloudmail">Cloud Mail</option>
           </select>
           <button id="btn-mail-login" class="btn btn-outline btn-sm data-inline-btn" type="button" disabled>登录</button>
         </div>
@@ -539,7 +562,7 @@
           <option value="custom-pool">自定义邮箱池</option>
           <option value="cloudflare">Cloudflare</option>
           <option value="icloud">iCloud 隐私邮箱</option>
-          <option value="cloudflare-temp-email">Cloudflare Temp Email（推荐）</option>
+          <option value="cloudflare-temp-email">Cloudflare Temp Email</option>
           <option value="cloudmail">Cloud Mail</option>
         </select>
       </div>

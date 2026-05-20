@@ -3994,3 +3994,67 @@ async function ensureIpProxySettingsAppliedFromCurrentState(options = {}) {
   const state = options.state || await getState();
   return applyIpProxySettingsFromState(state, options);
 }
+
+async function restoreIpProxySettingsOnWorkerStart(options = {}) {
+  const state = options.state || await getState();
+  const enabled = Boolean(state?.ipProxyEnabled);
+  const autoApply = Boolean(options?.autoApply);
+  const provider = normalizeIpProxyProviderValue(state?.ipProxyService);
+  const proxySettings = await getChromeProxySettings({ incognito: false }).catch(() => null);
+  const controlledByThisExtension = String(proxySettings?.levelOfControl || '').trim() === 'controlled_by_this_extension';
+  const pacModeActive = String(proxySettings?.value?.mode || '').trim().toLowerCase() === 'pac_script';
+  const hasStaleControlledPac = controlledByThisExtension && pacModeActive;
+
+  if (!enabled) {
+    if (hasStaleControlledPac) {
+      await clearIpProxySettings({ resetLastAppliedAuthSnapshot: true }).catch(() => {});
+    }
+    await setIpProxyLeakGuardEnabled(false).catch(() => {});
+    const status = {
+      enabled: false,
+      applied: false,
+      reason: hasStaleControlledPac ? 'startup_cleared_stale_proxy' : 'disabled',
+      provider,
+      exitDetecting: false,
+      exitIp: '',
+      exitRegion: '',
+      exitError: '',
+      error: '',
+    };
+    await updateIpProxyRuntimeStatus(status).catch(() => {});
+    return status;
+  }
+
+  if (hasStaleControlledPac) {
+    return applyIpProxySettingsFromState(state, {
+      ...options,
+      skipExitProbe: true,
+      resetNetworkState: false,
+      forceAuthRebind: false,
+      suppressAuthRebind: true,
+    });
+  }
+
+  if (autoApply) {
+    return applyIpProxySettingsFromState(state, options);
+  }
+
+  const entry = getIpProxyCurrentEntryFromState(state);
+  const status = {
+    enabled: true,
+    applied: false,
+    reason: 'startup_restore_deferred',
+    provider,
+    host: entry?.host || '',
+    port: entry?.port || 0,
+    region: entry?.region || '',
+    hasAuth: Boolean(entry?.username || entry?.password),
+    exitDetecting: false,
+    exitIp: '',
+    exitRegion: '',
+    exitError: '',
+    error: '',
+  };
+  await updateIpProxyRuntimeStatus(status).catch(() => {});
+  return status;
+}

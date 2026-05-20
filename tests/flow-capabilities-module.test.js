@@ -109,6 +109,38 @@ test('flow capability registry recognizes local cpa json no-rt as a supported lo
   assert.equal(capabilityState.canUseSelectedPanelMode, true);
 });
 
+test('flow capability registry exposes session import strategies only for matching panels', () => {
+  const api = loadApi();
+  const registry = api.createFlowCapabilityRegistry();
+
+  const sub2apiSessionState = registry.resolveSidepanelCapabilities({
+    state: {
+      activeFlowId: 'openai',
+      panelMode: 'sub2api',
+      plusModeEnabled: true,
+      signupMethod: 'email',
+      plusAccountAccessStrategy: 'sub2api_codex_session',
+    },
+  });
+
+  assert.equal(sub2apiSessionState.effectivePlusAccountAccessStrategy, 'sub2api_codex_session');
+  assert.deepEqual(sub2apiSessionState.availablePlusAccountAccessStrategies, ['oauth', 'sub2api_codex_session']);
+
+  const codex2apiSessionState = registry.resolveSidepanelCapabilities({
+    state: {
+      activeFlowId: 'openai',
+      panelMode: 'codex2api',
+      plusModeEnabled: true,
+      signupMethod: 'email',
+      plusAccountAccessStrategy: 'sub2api_codex_session',
+    },
+  });
+
+  assert.equal(codex2apiSessionState.effectivePlusAccountAccessStrategy, 'oauth');
+  assert.deepEqual(codex2apiSessionState.availablePlusAccountAccessStrategies, ['oauth']);
+  assert.equal(codex2apiSessionState.canEditPlusAccountAccessStrategy, false);
+});
+
 test('flow capability registry exposes shared auto-run validation for phone locks and panel support', () => {
   const api = loadApi();
   const registry = api.createFlowCapabilityRegistry({

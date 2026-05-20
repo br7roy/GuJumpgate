@@ -1012,7 +1012,7 @@ function normalizeCloudflareTempEmailBaseUrlValue(value) { return String(value |
 function normalizeCloudflareTempEmailReceiveMailboxValue(value) { return String(value || '').trim(); }
 function normalizeAccountRunHistoryHelperBaseUrlValue(value) { return String(value || '').trim(); }
 function normalizePlusHostedCheckoutOauthDelaySeconds(value) { return Number(value) || 0; }
-function normalizeHostedCheckoutVerificationPopupDelaySeconds(value) { return Number(value) || 4; }
+function normalizeHostedCheckoutVerificationPopupDelaySeconds(value) { return Number(value) || 20; }
 function normalizeHostedCheckoutVerificationUrlValue(value) { return String(value || '').trim(); }
 function normalizeHostedCheckoutPhoneValue(value) { return String(value || '').trim(); }
 function normalizeAutoRunThreadIntervalMinutes(value) { return Number(value) || 0; }

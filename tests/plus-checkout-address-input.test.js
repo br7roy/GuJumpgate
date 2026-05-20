@@ -321,10 +321,13 @@ test('getCheckoutAmountSummary reads non-zero today due amount', () => {
   row.parentElement = null;
 
   const bundle = [
+    'const location = window.location || {};',
+    extractFunction('isHostedOpenAiCheckoutPage'),
     extractFunction('isVisibleElement'),
     extractFunction('normalizeText'),
     extractFunction('parseLocalizedAmount'),
     extractFunction('getTextAfterTodayDueLabel'),
+    extractFunction('getHostedCheckoutTotalAmountSummary'),
     extractFunction('getVisibleControls'),
     extractFunction('getCheckoutAmountSummary'),
     'return { getCheckoutAmountSummary };',
@@ -333,8 +336,10 @@ test('getCheckoutAmountSummary reads non-zero today due amount', () => {
   const api = new Function('window', 'document', bundle)(
     {
       getComputedStyle: () => ({ display: 'block', visibility: 'visible' }),
+      location: { host: 'chatgpt.com' },
     },
     {
+      querySelector: () => null,
       querySelectorAll: () => [label, amount, row],
     }
   );
@@ -356,10 +361,13 @@ test('getCheckoutAmountSummary accepts zero today due amount', () => {
   row.parentElement = null;
 
   const bundle = [
+    'const location = window.location || {};',
+    extractFunction('isHostedOpenAiCheckoutPage'),
     extractFunction('isVisibleElement'),
     extractFunction('normalizeText'),
     extractFunction('parseLocalizedAmount'),
     extractFunction('getTextAfterTodayDueLabel'),
+    extractFunction('getHostedCheckoutTotalAmountSummary'),
     extractFunction('getVisibleControls'),
     extractFunction('getCheckoutAmountSummary'),
     'return { getCheckoutAmountSummary };',
@@ -368,8 +376,10 @@ test('getCheckoutAmountSummary accepts zero today due amount', () => {
   const api = new Function('window', 'document', bundle)(
     {
       getComputedStyle: () => ({ display: 'block', visibility: 'visible' }),
+      location: { host: 'chatgpt.com' },
     },
     {
+      querySelector: () => null,
       querySelectorAll: () => [label, amount, row],
     }
   );
@@ -378,6 +388,66 @@ test('getCheckoutAmountSummary accepts zero today due amount', () => {
   assert.equal(summary.hasTodayDue, true);
   assert.equal(summary.isZero, true);
   assert.equal(summary.amount, 0);
+});
+
+test('getCheckoutAmountSummary prefers hosted OpenAI total amount selectors', () => {
+  const orderAmount = createElement({
+    tagName: 'SPAN',
+    text: 'US$19.99',
+    attrs: { id: 'OrderDetails-TotalAmount' },
+  });
+  const orderCurrencyAmount = createElement({
+    tagName: 'SPAN',
+    text: 'US$19.99',
+    className: 'CurrencyAmount',
+  });
+  const summaryAmount = createElement({
+    tagName: 'SPAN',
+    text: 'US$19.99',
+    attrs: { id: 'ProductSummary-totalAmount' },
+  });
+  const summaryCurrencyAmount = createElement({
+    tagName: 'SPAN',
+    text: 'US$19.99',
+    className: 'CurrencyAmount',
+  });
+
+  const selectors = new Map([
+    ['#OrderDetails-TotalAmount .CurrencyAmount', orderCurrencyAmount],
+    ['#OrderDetails-TotalAmount', orderAmount],
+    ['#ProductSummary-totalAmount .CurrencyAmount', summaryCurrencyAmount],
+    ['#ProductSummary-totalAmount', summaryAmount],
+  ]);
+
+  const bundle = [
+    'const location = window.location || {};',
+    extractFunction('isHostedOpenAiCheckoutPage'),
+    extractFunction('isVisibleElement'),
+    extractFunction('normalizeText'),
+    extractFunction('parseLocalizedAmount'),
+    extractFunction('getTextAfterTodayDueLabel'),
+    extractFunction('getHostedCheckoutTotalAmountSummary'),
+    extractFunction('getVisibleControls'),
+    extractFunction('getCheckoutAmountSummary'),
+    'return { getCheckoutAmountSummary };',
+  ].join('\n');
+
+  const api = new Function('window', 'document', bundle)(
+    {
+      getComputedStyle: () => ({ display: 'block', visibility: 'visible' }),
+      location: { host: 'pay.openai.com' },
+    },
+    {
+      querySelector: (selector) => selectors.get(selector) || null,
+      querySelectorAll: () => [],
+    }
+  );
+
+  const summary = api.getCheckoutAmountSummary();
+  assert.equal(summary.hasTodayDue, true);
+  assert.equal(summary.isZero, false);
+  assert.equal(summary.amount, 19.99);
+  assert.equal(summary.rawAmount, 'US$19.99');
 });
 
 test('isPayPalPaymentMethodActive requires a selected PayPal control', () => {
@@ -461,6 +531,7 @@ test('getStructuredAddressFields recognizes Stripe localized address field names
   const postalCode = createInput({ name: 'postalCode', placeholder: '郵便番号' });
   const inputs = [address1, city, region, postalCode];
   const documentMock = {
+    getElementById: () => null,
     querySelectorAll: (selector) => {
       if (selector === 'input, textarea') return inputs;
       if (String(selector || '').includes('label[for=')) return [];
@@ -692,6 +763,7 @@ test('country and region helpers recognize the dropdown-style localized address 
   const documentMock = {
     documentElement: {},
     body: {},
+    getElementById: () => null,
     querySelectorAll: (selector) => {
       if (String(selector || '').includes('label[for=')) return [];
       if (String(selector || '').includes('combobox') || String(selector || '').includes('button') || String(selector || '').includes('select')) {
